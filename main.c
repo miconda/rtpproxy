@@ -98,7 +98,8 @@ usage(void)
     fprintf(stderr, "usage: rtpproxy [-2fvFiPa] [-l addr1[/addr2]] "
       "[-6 addr1[/addr2]] [-s path]\n\t[-t tos] [-r rdir [-S sdir]] [-T ttl] "
       "[-L nfiles] [-m port_min]\n\t[-M port_max] [-u uname[:gname]] "
-      "[-n timeout_socket] [-d log_level[:log_facility]]\n");
+      "[-n timeout_socket] [-d log_level[:log_facility]] "
+      "[-A addr1[/addr2]]\n");
     exit(1);
 }
 
@@ -133,6 +134,9 @@ init_config(struct cfg *cf, int argc, char **argv)
     cf->port_min = PORT_MIN;
     cf->port_max = PORT_MAX;
 
+    cf->advaddr[0] = NULL;
+    cf->advaddr[1] = NULL;
+
     cf->max_ttl = SESSION_TIMEOUT;
     cf->tos = TOS;
     cf->rrtcp = 1;
@@ -147,7 +151,7 @@ init_config(struct cfg *cf, int argc, char **argv)
     if (getrlimit(RLIMIT_NOFILE, &(cf->nofile_limit)) != 0)
 	err(1, "getrlimit");
 
-    while ((ch = getopt(argc, argv, "vf2Rl:6:s:S:t:r:p:T:L:m:M:u:Fin:Pad:")) != -1)
+    while ((ch = getopt(argc, argv, "vf2Rl:6:s:S:t:r:p:T:L:m:M:u:Fin:Pad:A:")) != -1)
 	switch (ch) {
 	case 'f':
 	    cf->nodaemon = 1;
@@ -172,6 +176,23 @@ init_config(struct cfg *cf, int argc, char **argv)
 		cf->bmode = 1;
 	    }
 	    break;
+
+	case 'A':
+	   cf->advaddr[0] = optarg;
+	   cf->advaddr[1] = strchr(cf->advaddr[0], '/');
+	   if (cf->advaddr[1] != NULL) {
+	     *cf->advaddr[1] = '\0';
+	     cf->advaddr[1]++;
+	     if(*cf->advaddr[0]==0) {
+	       errx(1, "first advertised address is invalid");
+	       exit(0);
+	     }
+	     if(*cf->advaddr[1]==0) {
+	       errx(1, "second advertised address is invalid");
+	       exit(0);
+	     }
+	   }
+	   break;
 
 	case 's':
 	    if (strncmp("udp:", optarg, 4) == 0) {
